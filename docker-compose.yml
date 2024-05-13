@@ -1,0 +1,15 @@
+version: '3.9'
+
+services:
+  db:
+    container_name: pg_spring_security
+    image: postgres
+    restart: always
+    environment:
+      POSTGRES_USER: admin
+      POSTGRES_PASSWORD: 123456
+      POSTGRES_DB: springSecurity
+    ports:
+      - "5433:5432"
+    volumes:
+      - D:\Docker\postgres_container_data:/var/lib/postgresql/data
