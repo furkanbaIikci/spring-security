@@ -5,6 +5,7 @@ import com.springsecurity.springsecurity.Entity.Role;
 import com.springsecurity.springsecurity.Entity.User;
 import com.springsecurity.springsecurity.Repository.UserRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -25,6 +26,11 @@ public class UserService {
     }
 
     public ResponseEntity<String> saveUser(UserSaveRequest req) {
+
+        if(userRepository.findByUsername(req.username()) != null){
+            return ResponseEntity.status(HttpStatus.CONFLICT).body("Username already exist!");
+        }
+
         User user = User.builder()
                 .username(req.username())
                 .password(req.password())

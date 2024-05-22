@@ -8,7 +8,6 @@ import com.springsecurity.springsecurity.Entity.User;
 import com.springsecurity.springsecurity.Repository.RefreshTokenRepository;
 import com.springsecurity.springsecurity.Repository.UserRepository;
 import com.springsecurity.springsecurity.Security.JwtTokenProvider;
-import jakarta.servlet.http.Cookie;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
@@ -36,36 +35,36 @@ public class AuthService {
     private final RefreshTokenRepository refreshTokenRepository;
 
     public ResponseEntity<AuthResponse> login(LoginRequest loginRequest) {
-        UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(loginRequest.username(),
-                loginRequest.password());
-        System.out.println(authToken.getCredentials() +  authToken.getName() + authToken.getPrincipal());
-        Authentication auth = authenticationManager.authenticate(authToken);
-        SecurityContextHolder.getContext().setAuthentication(auth);
-        System.out.println(auth);
-        String jwtToken = jwtTokenProvider.generateJwtToken(auth);
-        System.out.println(jwtToken);
+
         User user = userRepository.findByUsername(loginRequest.username());
 
         if (user == null) {
             return ResponseEntity.notFound().build();
         }
+        UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(loginRequest.username(),
+                loginRequest.password());
+        Authentication auth = authenticationManager.authenticate(authToken);
+        SecurityContextHolder.getContext().setAuthentication(auth);
+        String jwtToken = jwtTokenProvider.generateJwtToken(auth);
+
 
         RefreshToken refreshToken = refreshTokenRepository.findByUserId(user.getId());
-
-        if(refreshToken == null){
-            createRefreshToken(user);
+        String newRefreshToken;
+        if (refreshToken == null || refreshToken.getToken() == null) {
+            newRefreshToken = createRefreshToken(user);
+        }else{
+            newRefreshToken = refreshToken.getToken();
         }
-        Cookie cookie = new Cookie("timestamp", new Date().getTime()+";HttpOnly");
 
-        AuthResponse authResponse = new AuthResponse(user.getId(), jwtToken);
+        AuthResponse authResponse = new AuthResponse(user.getId(), jwtToken, newRefreshToken);
 
         return ResponseEntity.ok(authResponse);
     }
 
     public String createRefreshToken(User user) {
         RefreshToken token = refreshTokenRepository.findByUserId(user.getId());
-        if(token == null) {
-            token =	new RefreshToken();
+        if (token == null) {
+            token = new RefreshToken();
             token.setUser(user);
             token.setToken(UUID.randomUUID().toString());
             token.setExpiryDate(Date.from(Instant.now().plusSeconds(expireSeconds)));
@@ -82,19 +81,19 @@ public class AuthService {
         return refreshTokenRepository.findByUserId(userId);
     }
 
-//    public ResponseEntity<AuthResponse> refresh(RefreshTokenRequest request) {
-//        AuthResponse response;
-//        RefreshToken token = refreshTokenRepository.findByUserId(request.userId());
-//        if (token.getToken().equals(request.token()) && !isRefreshExpired(token)) {
-//
-//            User user = token.getUser();
-//            String jwtToken = jwtTokenProvider.generateJwtTokenByUserId(user.getId());
-//            //response = new AuthResponse("token successfully refreshed.", user.getId(), jwtToken);
-//
-//            return new ResponseEntity<>(response, HttpStatus.OK);
-//        } else {
-//            //response = new AuthResponse("refresh token is not valid.", null, null);
-//            return new ResponseEntity<>(response, HttpStatus.UNAUTHORIZED);
-//        }
-//    }
+    public ResponseEntity<AuthResponse> refresh(RefreshTokenRequest request) {
+        AuthResponse response;
+        RefreshToken refreshToken = refreshTokenRepository.findByUserId(request.userId());
+        if (refreshToken != null && refreshToken.getToken().equals(request.refreshToken()) && !isRefreshExpired(refreshToken)) {
+
+            User user = refreshToken.getUser();
+            String jwtToken = jwtTokenProvider.generateJwtTokenByUserId(user.getId());
+            response = new AuthResponse(user.getId(), jwtToken, refreshToken.getToken());
+
+            return new ResponseEntity<>(response, HttpStatus.OK);
+        } else {
+            //response = new AuthResponse();
+            return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
+        }
+    }
 }
