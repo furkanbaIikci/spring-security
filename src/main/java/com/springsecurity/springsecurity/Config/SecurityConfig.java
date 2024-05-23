@@ -1,6 +1,5 @@
 package com.springsecurity.springsecurity.Config;
 
-
 import com.springsecurity.springsecurity.Security.JwtAuthenticationEntryPoint;
 import com.springsecurity.springsecurity.Security.JwtAuthenticationFilter;
 import org.springframework.context.annotation.Bean;
@@ -55,7 +54,7 @@ public class SecurityConfig implements WebMvcConfigurer {
                 .csrf(AbstractHttpConfigurer::disable)
                 .exceptionHandling(handling -> handling.authenticationEntryPoint(handler))
                 .sessionManagement(management -> management.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-                .authorizeHttpRequests(auth -> auth.requestMatchers("/auth/**")
+                .authorizeHttpRequests(auth -> auth.requestMatchers("/auth/login")
                         .permitAll()
                         .requestMatchers("/user/save")
                         .permitAll()
@@ -69,7 +68,7 @@ public class SecurityConfig implements WebMvcConfigurer {
     @Override
     public void addCorsMappings(CorsRegistry registry) {
         registry.addMapping("/**")
-                .allowedOrigins("http://localhost:5173", "http://25.43.87.4:5173")
+                .allowedOrigins("http://localhost:5173")
                 .allowedMethods("*")
                 .maxAge(7200L)
                 .allowedHeaders("*")
